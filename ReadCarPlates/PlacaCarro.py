@@ -23,7 +23,7 @@ def ResizeImg(img):
     (h, w) = img.shape[:2] # Get original height and width
 
     # Define a target width and calculate the corresponding height
-    target_width = 800
+    target_width = 500
     ratio = target_width / float(w)
     target_height = int(h * ratio)
     new_dimensions_aspect_ratio = (target_width, target_height)    
@@ -49,8 +49,8 @@ def LimpaImagem(img):
     #Binarização com limiar
     # img = cv2.imread('ponte.jpg')
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    suave = cv2.GaussianBlur(img, (1, 1), 0) # aplica blur
-    # suave = img
+    # suave = cv2.GaussianBlur(img, (1, 1), 0) # aplica blur
+    suave = img
 
     # kernel = np.ones((4, 4), np.uint8)
     # img_dil2 = cv2.dilate(img, kernel, iterations=2)
@@ -62,8 +62,10 @@ def LimpaImagem(img):
     # titlesArray = ['Original', 'Dilate lv. 2', 'Dilate lv. 4', 'Dilate lv. 6', 'img_dil8','img_dil10']
     # showMultipleImages(imgsArray, titlesArray)
 
-    (T, bin) = cv2.threshold(suave, 130, 255, cv2.THRESH_BINARY)
-    (T, binI) = cv2.threshold(suave, 130, 255, cv2.THRESH_BINARY_INV)
+    equalizada = cv2.equalizeHist(suave)
+
+    (T, bin) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY)
+    (T, binI) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY_INV)
     cv2.bitwise_and(img, img, mask = binI)
     # resultado1 = np.vstack([np.hstack([suave, bin])])
     # resultado2 = np.vstack([np.hstack([binI, cv2.bitwise_and(img, img, mask = binI)])])
@@ -72,11 +74,13 @@ def LimpaImagem(img):
     # cv2.imshow("Binarização da imagem", resultado2)
     # cv2.waitKey(0)
     
+    
     LePlaca(binI)
 
-    resultado1 = np.vstack([np.hstack([suave, binI])])
+    resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
     cv2.imshow("Binarizacao da imagem", resultado1)    
     Histograma(img)
+    Histograma(equalizada)
     cv2.waitKey(0)
 
 
