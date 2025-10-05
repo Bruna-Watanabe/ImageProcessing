@@ -1,7 +1,10 @@
+from matplotlib import pyplot as plt
 from pytesseract import pytesseract
 import numpy as np
 import cv2
 import os
+
+from Histograma import Histograma
 
 imgsPath = 'imgs'
 
@@ -20,7 +23,7 @@ def ResizeImg(img):
     (h, w) = img.shape[:2] # Get original height and width
 
     # Define a target width and calculate the corresponding height
-    target_width = 1000
+    target_width = 800
     ratio = target_width / float(w)
     target_height = int(h * ratio)
     new_dimensions_aspect_ratio = (target_width, target_height)    
@@ -49,7 +52,6 @@ def LimpaImagem(img):
     suave = cv2.GaussianBlur(img, (1, 1), 0) # aplica blur
     # suave = img
 
-
     # kernel = np.ones((4, 4), np.uint8)
     # img_dil2 = cv2.dilate(img, kernel, iterations=2)
     # img_dil4 = cv2.dilate(img, kernel, iterations=4)
@@ -73,7 +75,8 @@ def LimpaImagem(img):
     LePlaca(binI)
 
     resultado1 = np.vstack([np.hstack([suave, binI])])
-    cv2.imshow("Binarizacao da imagem", resultado1)
+    cv2.imshow("Binarizacao da imagem", resultado1)    
+    Histograma(img)
     cv2.waitKey(0)
 
 
@@ -113,7 +116,8 @@ def LimpaImagem(img):
 def Main():
     PegaImagens()
     for i in imgs:
-        LimpaImagem(ResizeImg(i))
+        i = ResizeImg(i)
+        LimpaImagem(i)
 
 
 Main()
