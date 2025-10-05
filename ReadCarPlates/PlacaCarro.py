@@ -3,8 +3,8 @@ from pytesseract import pytesseract
 import numpy as np
 import cv2
 import os
-
 from Histograma import Histograma
+from janela import MoveWindow
 
 imgsPath = 'imgs'
 
@@ -64,24 +64,41 @@ def LimpaImagem(img):
 
     equalizada = cv2.equalizeHist(suave)
 
-    (T, bin) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY)
-    (T, binI) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY_INV)
-    cv2.bitwise_and(img, img, mask = binI)
+
+
+
+
+
+    ## (T, bin) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY)
+    ## (T, binI) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY_INV)
+    ## cv2.bitwise_and(img, img, mask = binI)
+    
     # resultado1 = np.vstack([np.hstack([suave, bin])])
     # resultado2 = np.vstack([np.hstack([binI, cv2.bitwise_and(img, img, mask = binI)])])
     # cv2.imshow("Binarização da imagem", resultado1)
     # cv2.waitKey(0)
     # cv2.imshow("Binarização da imagem", resultado2)
     # cv2.waitKey(0)
-    
-    
-    LePlaca(binI)
 
-    resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
-    cv2.imshow("Binarizacao da imagem", resultado1)    
-    Histograma(img)
-    Histograma(equalizada)
+    bin1 = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    # bin2 = cv2.adaptiveThreshold(suave, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    resultado = np.vstack([np.hstack([img, suave, bin1])])
+    # resultado2 = np.vstack([np.hstack([bin1, bin2])])
+    # cv2.imshow("Binarização da imagem", resultado1)
+    # MoveWindow()
+    # cv2.waitKey(0)
+    cv2.imshow("Binarização da imagem", resultado)
+    MoveWindow()
     cv2.waitKey(0)
+    
+    ## LePlaca(binI)
+
+    ## resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
+    ## cv2.imshow("Binarizacao da imagem", resultado1)    
+    ## MoveWindow()
+    ## Histograma(img)
+    ## Histograma(equalizada)
+    ## cv2.waitKey(0)
 
 
     #threshhold adaptativo ficou uma bosta
