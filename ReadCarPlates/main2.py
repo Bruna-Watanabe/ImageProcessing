@@ -2,12 +2,26 @@ import cv2
 import pytesseract
 import os
 import argparse
+import easyocr
 
 # Configurar caminho do Tesseract se necessário (no Windows)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
+reader = easyocr.Reader(['pt'])
+
 # Carregar o classificador de placas
 plate_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_russian_plate_number.xml")
+
+def CheckPlate(text, image_path, plate_img, i, model_name):
+    #veryfica se eh placa
+    for t in text:
+        if text != '' and t.isdigit() and t.isalpha:
+            #print('é placa')
+            print(model_name)
+            print(f"{os.path.basename(image_path)} [{i+1}] : {text}")
+
+            # Mostrar a imagem da placa com zoom
+            cv2.imshow(f"Placa - {os.path.basename(image_path)} [{i+1}]", plate_img)
 
 def process_image(image_path, show_text=False):
     img = cv2.imread(image_path)
@@ -22,9 +36,6 @@ def process_image(image_path, show_text=False):
     
     for i, (x, y, w, h) in enumerate(plates):
         plate_img = img[y:y + h, x:x + w]
-        
-        # Mostrar a imagem da placa com zoom
-        cv2.imshow(f"Placa - {os.path.basename(image_path)} [{i+1}]", plate_img)
 
         if show_text:
             # Pré-processamento simples para OCR
@@ -33,16 +44,20 @@ def process_image(image_path, show_text=False):
             _, plate_thresh = cv2.threshold(plate_gray, 150, 255, cv2.THRESH_BINARY)
             
             text = pytesseract.image_to_string(plate_thresh, config="--psm 8")
-            text = "".join([c for c in text if c.isalnum()])  # Limpar caracteres estranhos
+            CheckPlate(text, image_path, plate_img, i, 'pytesseract')
+            
+            easyocr_result = reader.readtext(plate_thresh)
 
-            for t in text:
-                if t.isdigit() and t.isalpha:
-                    print('é placa')
+            txt = ''
+            text = ''
+            for (bbox, txt, prob) in easyocr_result:
+                # print(f'Text: {txt}, Probability: {prob}')
+                text += f' txt'
             
+            CheckPlate(text, image_path, plate_img, i, 'easyOcr')
+
             
-            print(f"{os.path.basename(image_path)} [{i+1}] : {text}")
-            
-        cv2.waitKey(0)
+    cv2.waitKey(0)
 
 def process_folder():
     folder_path = 'imgs'
