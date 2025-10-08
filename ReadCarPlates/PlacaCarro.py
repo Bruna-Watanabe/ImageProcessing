@@ -23,7 +23,7 @@ def ResizeImg(img):
     (h, w) = img.shape[:2] # Get original height and width
 
     # Define a target width and calculate the corresponding height
-    target_width = 500
+    target_width = 600
     ratio = target_width / float(w)
     target_height = int(h * ratio)
     new_dimensions_aspect_ratio = (target_width, target_height)    
@@ -45,9 +45,15 @@ def LePlaca(img):
     print(f'leu: {text}')
     return text
 
+def MostraImagem(nome, img):
+    cv2.imshow(nome, img)
+    MoveWindow()
+    cv2.waitKey(0)
+
 def LimpaImagem(img):
     #Binarização com limiar
     # img = cv2.imread('ponte.jpg')
+    imgOriginal = img.copy()
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # suave = cv2.GaussianBlur(img, (1, 1), 0) # aplica blur
     suave = img
@@ -62,12 +68,6 @@ def LimpaImagem(img):
     # titlesArray = ['Original', 'Dilate lv. 2', 'Dilate lv. 4', 'Dilate lv. 6', 'img_dil8','img_dil10']
     # showMultipleImages(imgsArray, titlesArray)
 
-    equalizada = cv2.equalizeHist(suave)
-
-
-
-
-
 
     ## (T, bin) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY)
     ## (T, binI) = cv2.threshold(equalizada, 130, 255, cv2.THRESH_BINARY_INV)
@@ -80,16 +80,32 @@ def LimpaImagem(img):
     # cv2.imshow("Binarização da imagem", resultado2)
     # cv2.waitKey(0)
 
-    bin1 = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    #reducao de ruido
+    filtrado = cv2.bilateralFilter(suave, 11, 17, 17)
+
+    #threshhold
     # bin2 = cv2.adaptiveThreshold(suave, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
-    resultado = np.vstack([np.hstack([img, suave, bin1])])
+    threshold = cv2.adaptiveThreshold(filtrado, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    
+    thresholdSemFiltro = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+
+    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    # morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
+    # contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # cv2.drawContours(imgOriginal, objetos, -1, (255, 0, 0), 1)
+    resultado = np.vstack([np.hstack([img, thresholdSemFiltro, threshold])])
+
+    # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
+    
+    # resultado = np.vstack([np.hstack([img, bin1,imgTophat])])
     # resultado2 = np.vstack([np.hstack([bin1, bin2])])
     # cv2.imshow("Binarização da imagem", resultado1)
     # MoveWindow()
     # cv2.waitKey(0)
-    cv2.imshow("Binarização da imagem", resultado)
-    MoveWindow()
-    cv2.waitKey(0)
+    LePlaca(threshold)
+    MostraImagem("Binarizacao da imagem", resultado)
+    # MostraImagem("original", imgOriginal)
     
     ## LePlaca(binI)
 
