@@ -93,37 +93,42 @@ def LimpaImagem(img):
 
     edged = cv2.Canny(filtrado, 30, 200) #Edge detection
 
-    keypoints = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    keypoints = cv2.findContours(threshold.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours = imutils.grab_contours(keypoints)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
 
-    location = None
+    locations = []
     for contour in contours:
         approx = cv2.approxPolyDP(contour, 10, True)
         if len(approx) == 4:
-            location = approx
-            break
+            locations.append(approx)
 
-    print(location)
+    # print(locations)
     
     try:
-        mask = np.zeros(img.shape, np.uint8)
-        new_image = cv2.drawContours(mask, [location], 0,255,-1)
-        new_image = cv2.bitwise_and(img, img, mask=mask)
+        for l in locations:
+            mask = np.zeros(img.shape, np.uint8)
+            new_image = cv2.drawContours(mask, [l], 0,255,-1)
+            new_image = cv2.bitwise_and(img, img, mask=mask)
 
-        placa = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+            placa = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
 
-
-
-
+            LePlaca(new_image)
+            MostraImagem('img', new_image)
         
-        # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        # morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
-        # contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #outro
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
+        contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(imgOriginal, contornos, -1, (255, 0, 0), 2)
 
-        # cv2.drawContours(imgOriginal, objetos, -1, (255, 0, 0), 1)
+        (x,y) = np.where(mask==255)
+        (x1, y1) = (np.min(x), np.min(y))
+        (x2, y2) = (np.max(x), np.max(y))
+        cropped_image = suave[x1:x2+1, y1:y2+1]
+
         resultado = np.vstack([np.hstack([img, thresholdSemFiltro, threshold])])
-        resultado2 = np.vstack([np.hstack([imgOriginal, placa])])
+        resultado2 = np.vstack([np.hstack([imgOriginal, cropped_image])])
 
         # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
         
@@ -133,11 +138,12 @@ def LimpaImagem(img):
         # MoveWindow()
         # cv2.waitKey(0)
         LePlaca(threshold)
-        MostraImagem("img", resultado2)
+        MostraImagem("img", cropped_image)
         # MostraImagem("original", imgOriginal)
     
-    except:
-        print('erro')
+    except Exception as e:
+        #print(e)
+        pass
     ## LePlaca(binI)
 
     ## resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
