@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 from pytesseract import pytesseract
 import numpy as np
+import imutils
 import cv2
 import os
 from Histograma import Histograma
@@ -53,6 +54,7 @@ def MostraImagem(nome, img):
 def LimpaImagem(img):
     #Binarização com limiar
     # img = cv2.imread('ponte.jpg')
+
     imgOriginal = img.copy()
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # suave = cv2.GaussianBlur(img, (1, 1), 0) # aplica blur
@@ -89,24 +91,53 @@ def LimpaImagem(img):
     
     thresholdSemFiltro = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
 
-    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-    # morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
-    # contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    edged = cv2.Canny(filtrado, 30, 200) #Edge detection
 
-    # cv2.drawContours(imgOriginal, objetos, -1, (255, 0, 0), 1)
-    resultado = np.vstack([np.hstack([img, thresholdSemFiltro, threshold])])
+    keypoints = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours = imutils.grab_contours(keypoints)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
 
-    # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
+    location = None
+    for contour in contours:
+        approx = cv2.approxPolyDP(contour, 10, True)
+        if len(approx) == 4:
+            location = approx
+            break
+
+    print(location)
     
-    # resultado = np.vstack([np.hstack([img, bin1,imgTophat])])
-    # resultado2 = np.vstack([np.hstack([bin1, bin2])])
-    # cv2.imshow("Binarização da imagem", resultado1)
-    # MoveWindow()
-    # cv2.waitKey(0)
-    LePlaca(threshold)
-    MostraImagem("Binarizacao da imagem", resultado)
-    # MostraImagem("original", imgOriginal)
+    try:
+        mask = np.zeros(img.shape, np.uint8)
+        new_image = cv2.drawContours(mask, [location], 0,255,-1)
+        new_image = cv2.bitwise_and(img, img, mask=mask)
+
+        placa = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+
+
+
+
+        
+        # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        # morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
+        # contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # cv2.drawContours(imgOriginal, objetos, -1, (255, 0, 0), 1)
+        resultado = np.vstack([np.hstack([img, thresholdSemFiltro, threshold])])
+        resultado2 = np.vstack([np.hstack([imgOriginal, placa])])
+
+        # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
+        
+        # resultado = np.vstack([np.hstack([img, bin1,imgTophat])])
+        # resultado2 = np.vstack([np.hstack([bin1, bin2])])
+        # cv2.imshow("Binarização da imagem", resultado1)
+        # MoveWindow()
+        # cv2.waitKey(0)
+        LePlaca(threshold)
+        MostraImagem("img", resultado2)
+        # MostraImagem("original", imgOriginal)
     
+    except:
+        print('erro')
     ## LePlaca(binI)
 
     ## resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
