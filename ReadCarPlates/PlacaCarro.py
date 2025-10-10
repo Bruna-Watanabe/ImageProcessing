@@ -9,8 +9,9 @@ from janela import MoveWindow
 
 imgsPath = 'imgs'
 
-global imgs
+global imgs, zoom
 imgs = []
+zoom = []
 
 def PegaImagens():
     imgNames = os.listdir('imgs')
@@ -45,8 +46,23 @@ def LePlaca(img):
 
     #extract text from image
     text = pytesseract.image_to_string(img, config='tessedit_char_whitelist=0123456789')
-    print(f'leu: {text}')
+    # print(f'leu: {text}')
     return text
+
+def LePlacas(img):
+    print(len(img))
+    for i in range(len(img)):
+        try:
+            cv2.imshow(f"zooma{i}", img[i])
+
+            im = img[i]
+            gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+
+            text = LePlaca(gray)
+            if text != '' and text.isdigit() and text.isalpha:
+                print(text)
+        except Exception as e:
+            print(e)
 
 def MostraImagem(nome, img, resize_width = 600):
     img = ResizeImg(img, resize_width)
@@ -78,35 +94,34 @@ def TestThresholds(img, imgOriginal):
     MostraImagem(f'thresh {i}', a, 2000)
 
 
-def PegaContornos(threshold, imgOriginal, coiso = 0.016):
+def PegaContornos(threshold, imgOriginal, coiso=0.016, pad=10):
+    global zooom
     contornos, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     result = imgOriginal.copy()
-    cv2.drawContours(result, contornos, -1, (255, 0, 0), 2) 
-       
-    # MostraImagem('contornos', result)
-    # MostraImagem('a', StackImgs([mostrar]))
+    cv2.drawContours(result, contornos, -1, (255, 0, 0), 2)
 
     contours = sorted(contornos, key=cv2.contourArea, reverse=True)[:30]
-    
+
+    H, W = imgOriginal.shape[:2]
     achou = []
-    
     allCimg = imgOriginal.copy()
-    # Procurar contorno retangular (placa)
+
     for contour in contours:
-        # Aproximar o contorno
         perimetro = cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, coiso * perimetro, True)
-        
         cv2.drawContours(allCimg, [approx], -1, (0, 255, 0), 2)
 
-        # Verificar se é um retângulo (4 lados)
+        # Bounding-box crop for every contour (zoom with padding)
+        x, y, w, h = cv2.boundingRect(contour)
+        x0 = max(0, x - pad); y0 = max(0, y - pad)
+        x1 = min(W, x + w + pad); y1 = min(H, y + h + pad)
+        if x1 > x0 and y1 > y0:
+            zoom.append(imgOriginal[y0:y1, x0:x1].copy())
+
+        # Keep likely plate quads
         if len(approx) == 4:
-            x, y, w, h = cv2.boundingRect(contour)
-            aspect_ratio = float(w) / h
+            aspect_ratio = float(w) / max(h, 1)
             area = cv2.contourArea(contour)
-            
-            # Validar proporções típicas de placas brasileiras
-            # Carros: ~3.5:1, Motos: ~2.5:1 a 3:1
             if 2.0 <= aspect_ratio <= 5.0 and area > 1000:
                 achou.append(approx)
 
@@ -116,7 +131,9 @@ def PegaContornos(threshold, imgOriginal, coiso = 0.016):
 
     a = StackImgs([imgOriginal, result, allCimg])
     return a
+
     # MostraImagem('contornos', a,1800)
+
 
 def LimpaImagem(img):
     #Binarização com limiar
@@ -192,7 +209,6 @@ def LimpaImagem(img):
     # stack = StackImgs([filtrado1, suave1, filtrado2])
     stack = StackImgs([img, filtrado4, suave6])
     MostraImagem('blur', stack, 1900)
-    #region teste
     # TestThresholds(suave6, imgOriginal)
     threshold1 = cv2.adaptiveThreshold(suave1, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
     threshold2 = cv2.adaptiveThreshold(filtrado2, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
@@ -278,10 +294,7 @@ def LimpaImagem(img):
 
     a = StackImgs([imgOriginal, result6, allCimg])
     MostraImagem('contornos', a,1800)
-    #endregion
 
-
-    # #region veio
     # try:
     #     contours = imutils.grab_contours(contornos35)
     #     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
@@ -297,7 +310,6 @@ def LimpaImagem(img):
     #     MostraImagem('novo',cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB))
     # except Exception as e:
     #     print(e)
-    # # endregion
     # novo = False
     # if novo:
     #     #threshhold
@@ -572,6 +584,8 @@ def L3(img):
 
 
 def L4(img):
+    global zoom
+
     # Step 0: Original
     cv2.imshow("0_original", img)
     img, gray = brighten_and_equalize(img)
@@ -595,8 +609,13 @@ def L4(img):
     b = PegaContornos(white_clean, img, 0.045)
     cv2.imshow("contornob", b)
 
+    print(type(a))
+    #junta os dois
+    c = np.concatenate((a,b))
+    cv2.imshow("contornoc", c)
 
-    
+    LePlacas(zoom)
+        
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
