@@ -84,6 +84,13 @@ def LimpaImagem(img):
     # cv2.imshow("Binarização da imagem", resultado2)
     # cv2.waitKey(0)
     # aplica blur
+    
+    #mesma imagem com filtro de abertura
+    img_car_opening = cv2.morphologyEx(imgOriginal, cv2.MORPH_OPEN, np.ones((7,7),np.uint8))
+    img_car_opening = cv2.cvtColor(img_car_opening, cv2.COLOR_BGR2GRAY)
+    #imagem com filtro top hat
+    img_car_tophat = cv2.morphologyEx(imgOriginal, cv2.MORPH_TOPHAT, np.ones((38,38),np.uint8))
+    img_car_tophat = cv2.cvtColor(img_car_tophat, cv2.COLOR_BGR2GRAY)
 
     #filtra antes
     filtrado1 = cv2.bilateralFilter(img, 11, 75, 75)
@@ -92,127 +99,183 @@ def LimpaImagem(img):
     #blur antes
     suave2 = cv2.GaussianBlur(img, (9, 9), 0)
     filtrado2 = cv2.bilateralFilter(suave2, 11, 17, 17)
+    #open antes
+    suave3 = cv2.GaussianBlur(img_car_opening, (9, 9), 0)
+    filtrado3 = cv2.bilateralFilter(suave3, 11, 17, 17)
+    #tophaat antes
+    suave4 = cv2.GaussianBlur(img_car_tophat, (9, 9), 0)
+    filtrado4 = cv2.bilateralFilter(suave4, 11, 17, 17)
 
-    stack = StackImgs([filtrado1, suave1, filtrado2])
-    # MostraImagem('blur', stack, 1600)
+    # stack = StackImgs([filtrado1, suave1, filtrado2])
+    stack = StackImgs([suave4, filtrado4])
+    MostraImagem('blur', stack, 1600)
     #region teste
     
     threshold1 = cv2.adaptiveThreshold(suave1, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
     threshold2 = cv2.adaptiveThreshold(filtrado2, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
+    threshold3 = cv2.adaptiveThreshold(filtrado3, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
+    threshold4 = cv2.adaptiveThreshold(filtrado4, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
+    
     
     contornos1, _ = cv2.findContours(threshold1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contornos2, _ = cv2.findContours(threshold2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contornos3 = cv2.findContours(threshold2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos35 = cv2.findContours(threshold2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos3, _ = cv2.findContours(threshold3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos4, _ = cv2.findContours(threshold4, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     kernel = np.ones((5, 5), np.uint8)
     # img_moedas_erode1 = cv2.morpho(threshold2, kernel, iterations=1)
     img_moedas_erode1 = cv2.morphologyEx(threshold2, cv2.MORPH_CLOSE, kernel)
-    #mesma imagem com filtro de abertura
-    img_car_opening = cv2.morphologyEx(imgOriginal, cv2.MORPH_OPEN, np.ones((7,7),np.uint8))
-
-    #imagem com filtro top hat
-    img_car_tophat = cv2.morphologyEx(imgOriginal, cv2.MORPH_TOPHAT, np.ones((38,38),np.uint8))
 
     a= StackImgs([threshold2 ,img_moedas_erode1])
-    MostraImagem('a',a,1800)
+    # MostraImagem('a',a,1800)
     b = StackImgs([img_car_opening,img_car_tophat])
-    MostraImagem('a',b,1800)
+    # MostraImagem('a',b,1800)
 
-    contornos4, _ = cv2.findContours(img_moedas_erode1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contornos35, _ = cv2.findContours(img_moedas_erode1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     result1 = imgOriginal.copy()
     result2 = imgOriginal.copy()
+    result25 = imgOriginal.copy()
+    result3 = imgOriginal.copy()
     result4 = imgOriginal.copy()
 
     cv2.drawContours(result1, contornos1, -1, (255, 0, 0), 2)
     cv2.drawContours(result2, contornos2, -1, (255, 0, 0), 2)
+    cv2.drawContours(result25, contornos35, -1, (255, 0, 0), 2)
+    cv2.drawContours(result3, contornos3, -1, (255, 0, 0), 2)
     cv2.drawContours(result4, contornos4, -1, (255, 0, 0), 2)
-    stack = StackImgs([result1, result2,result4])
-    MostraImagem('contornos', stack, 1600)
+
+    stack = StackImgs([result1, result2,result25,result3,result4])
+    stack2 = StackImgs([result25,result4])
+    # MostraImagem('contornos', stack, 1900)
+    # MostraImagem('contornos', stack2, 1600)
+
+
     # MostraImagem('contornos', imgOriginal)
-
-    try:
-        contours = imutils.grab_contours(contornos3)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
-        location = None
-        for contour in contours:
-            approx = cv2.approxPolyDP(contour, 10, True)
-            if len(approx) == 4:
-                location = approx
-                break
-        mask = np.zeros(img.shape, np.uint8)
-        new_image = cv2.drawContours(mask, [location], 0,255, -1)
-        new_image = cv2.bitwise_and(img, img, mask=mask)
-        MostraImagem('novo',cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB))
-    except Exception as e:
-        print(e)
-
-    #
-    novo = False
-    if novo:
-        #threshhold
-        # bin2 = cv2.adaptiveThreshold(suave, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
-        threshold = cv2.adaptiveThreshold(filtrado, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    
+    # Ordenar contornos por área (maiores primeiro)
+    contours = sorted(contornos4, key=cv2.contourArea, reverse=True)[:30]
+    
+    achou = []
+    
+    allCimg = imgOriginal.copy()
+    # Procurar contorno retangular (placa)
+    for contour in contours:
+        # Aproximar o contorno
+        perimetro = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.018 * perimetro, True)
         
-        thresholdSemFiltro = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+        cv2.drawContours(allCimg, [approx], -1, (0, 255, 0), 2)
 
-        edged = cv2.Canny(filtrado, 30, 200) #Edge detection
+        # Verificar se é um retângulo (4 lados)
+        if len(approx) == 4:
+            x, y, w, h = cv2.boundingRect(contour)
+            aspect_ratio = float(w) / h
+            area = cv2.contourArea(contour)
+            
+            # Validar proporções típicas de placas brasileiras
+            # Carros: ~3.5:1, Motos: ~2.5:1 a 3:1
+            if 2.0 <= aspect_ratio <= 5.0 and area > 1000:
+                achou.append(approx)
 
-        keypoints = cv2.findContours(threshold.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = imutils.grab_contours(keypoints)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+    print(f'achou {len(achou)} placas')
+    for i in achou:
+        cv2.drawContours(imgOriginal, [i], -1, (0, 255, 0), 2)
 
-        locations = []
-        for contour in contours:
-            approx = cv2.approxPolyDP(contour, 10, True)
-            if len(approx) == 4:
-                locations.append(approx)
+    a = StackImgs([allCimg,imgOriginal])
+    MostraImagem('contornos', a,1800)
+    #endregion
 
-        # print(locations)
+
+    # #region veio
+    # try:
+    #     contours = imutils.grab_contours(contornos35)
+    #     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+    #     location = None
+    #     for contour in contours:
+    #         approx = cv2.approxPolyDP(contour, 10, True)
+    #         if len(approx) == 4:
+    #             location = approx
+    #             break
+    #     mask = np.zeros(img.shape, np.uint8)
+    #     new_image = cv2.drawContours(mask, [location], 0,255, -1)
+    #     new_image = cv2.bitwise_and(img, img, mask=mask)
+    #     MostraImagem('novo',cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB))
+    # except Exception as e:
+    #     print(e)
+    # # endregion
+    # novo = False
+    # if novo:
+    #     #threshhold
+    #     # bin2 = cv2.adaptiveThreshold(suave, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
+    #     threshold = cv2.adaptiveThreshold(filtrado, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
         
-        try:
-            MostraImagem('img', imgOriginal)        
-            print(f'achei {len(locations)} coisos')
-            
-            for l in locations:
-                mask = np.zeros(img.shape, np.uint8)
-                new_image = cv2.drawContours(mask, [l], 0,255,-1)
-                new_image = cv2.bitwise_and(img, img, mask=mask)
+    #     thresholdSemFiltro = cv2.adaptiveThreshold(suave, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 5)
 
-                placa = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+    #     edged = cv2.Canny(filtrado, 30, 200) #Edge detection
 
-                LePlaca(new_image)
-                MostraImagem('img', new_image)
-            
-            #outro
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-            morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
-            contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cv2.drawContours(imgOriginal, contornos, -1, (255, 0, 0), 2)
+    #     keypoints = cv2.findContours(threshold.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #     contours = imutils.grab_contours(keypoints)
+    #     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
 
-            (x,y) = np.where(mask==255)
-            (x1, y1) = (np.min(x), np.min(y))
-            (x2, y2) = (np.max(x), np.max(y))
-            cropped_image = suave[x1:x2+1, y1:y2+1]
+    #     locations = []
+    #     for contour in contours:
+    #         approx = cv2.approxPolyDP(contour, 10, True)
+    #         if len(approx) == 4:
+    #             locations.append(approx)
 
-            resultado = StackImgs([img, thresholdSemFiltro, threshold])
-            resultado2 = StackImgs([imgOriginal, cropped_image])
-
-            # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
-            
-            # resultado = np.vstack([np.hstack([img, bin1,imgTophat])])
-            # resultado2 = np.vstack([np.hstack([bin1, bin2])])
-            # cv2.imshow("Binarização da imagem", resultado1)
-            # MoveWindow()
-            # cv2.waitKey(0)
-            LePlaca(threshold)
-            MostraImagem("img", cropped_image)
-            # MostraImagem("original", imgOriginal)
+    #     # print(locations)
         
-        except Exception as e:
-            #print(e)
-            pass
-        ## LePlaca(binI)
+    #     try:
+    #         MostraImagem('img', imgOriginal)        
+    #         print(f'achei {len(locations)} coisos')
+            
+    #         for l in locations:
+    #             mask = np.zeros(img.shape, np.uint8)
+    #             new_image = cv2.drawContours(mask, [l], 0,255,-1)
+    #             new_image = cv2.bitwise_and(img, img, mask=mask)
+
+    #             placa = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+
+    #             LePlaca(new_image)
+    #             MostraImagem('img', new_image)
+            
+    #         #outro
+    #         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    #         morph_opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel)
+    #         contornos, _ = cv2.findContours(morph_opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #         cv2.drawContours(imgOriginal, contornos, -1, (255, 0, 0), 2)
+
+    #         (x,y) = np.where(mask==255)
+    #         (x1, y1) = (np.min(x), np.min(y))
+    #         (x2, y2) = (np.max(x), np.max(y))
+    #         cropped_image = suave[x1:x2+1, y1:y2+1]
+
+    #         resultado = StackImgs([img, thresholdSemFiltro, threshold])
+    #         resultado2 = StackImgs([imgOriginal, cropped_image])
+
+
+
+
+
+
+
+    #         # cv2.drawContours(imgOriginal, contornos, -1, (0, 255, 0), 2)
+            
+    #         # resultado = np.vstack([np.hstack([img, bin1,imgTophat])])
+    #         # resultado2 = np.vstack([np.hstack([bin1, bin2])])
+    #         # cv2.imshow("Binarização da imagem", resultado1)
+    #         # MoveWindow()
+    #         # cv2.waitKey(0)
+    #         LePlaca(threshold)
+    #         MostraImagem("img", cropped_image)
+    #         # MostraImagem("original", imgOriginal)
+        
+    #     except Exception as e:
+    #         #print(e)
+    #         pass
+    #     ## LePlaca(binI)
 
     ## resultado1 = np.vstack([np.hstack([suave, equalizada, binI])])
     ## cv2.imshow("Binarizacao da imagem", resultado1)    
