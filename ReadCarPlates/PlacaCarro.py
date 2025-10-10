@@ -45,7 +45,7 @@ def LePlaca(img):
     pytesseract.tesseract_cmd = pathToTesseract
 
     #extract text from image
-    text = pytesseract.image_to_string(img, config='-l eng --oem 1 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+    text = pytesseract.image_to_string(img, config='-l eng --oem 1 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
     # print(f'leu: {text}')
     return text
 
@@ -64,8 +64,8 @@ def LePlacas(img):
 
             text = LePlaca(gray)
             # if text != '' and text.isdigit() and text.isalpha:
-            if text != '' and len(text)> 5 and text.isalpha:
-                cv2.imshow(f"zooma{i}", img[i])
+            if text != '' and len(text)> 5 and len(text)< 10 and text.isalpha:
+                cv2.imshow(f"zoom{i}", img[i])
                 print('len:', len(text))
                 print(text)
         except Exception as e:
