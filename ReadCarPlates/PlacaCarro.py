@@ -45,7 +45,7 @@ def LePlaca(img):
     pytesseract.tesseract_cmd = pathToTesseract
 
     #extract text from image
-    text = pytesseract.image_to_string(img, config='tessedit_char_whitelist=0123456789')
+    text = pytesseract.image_to_string(img, config='-l eng --oem 1 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
     # print(f'leu: {text}')
     return text
 
@@ -53,13 +53,20 @@ def LePlacas(img):
     print(len(img))
     for i in range(len(img)):
         try:
-            cv2.imshow(f"zooma{i}", img[i])
 
             im = img[i]
             gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+            gray = cv2.equalizeHist(gray)
+            gray = cv2.bilateralFilter(gray, 11, 17, 17)
+            gray = cv2.GaussianBlur(gray, (3, 3), 0)
+            # gray = cv2.adaptiveThreshold(gray, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 7, 5)
+            gray = cv2.Canny(gray, 30, 200)
 
             text = LePlaca(gray)
-            if text != '' and text.isdigit() and text.isalpha:
+            # if text != '' and text.isdigit() and text.isalpha:
+            if text != '' and len(text)> 5 and text.isalpha:
+                cv2.imshow(f"zooma{i}", img[i])
+                print('len:', len(text))
                 print(text)
         except Exception as e:
             print(e)
@@ -116,7 +123,7 @@ def PegaContornos(threshold, imgOriginal, coiso=0.016, pad=10):
         x0 = max(0, x - pad); y0 = max(0, y - pad)
         x1 = min(W, x + w + pad); y1 = min(H, y + h + pad)
         if x1 > x0 and y1 > y0:
-            zoom.append(imgOriginal[y0:y1, x0:x1].copy())
+            zoom.append(ResizeImg(imgOriginal[y0:y1, x0:x1].copy(), 300))
 
         # Keep likely plate quads
         if len(approx) == 4:
@@ -592,32 +599,33 @@ def L4(img):
 
     # Step 1: HSV conversion
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    cv2.imshow("1_hsv_V", hsv[:,:,2])  # show V channel for brightness
+    # cv2.imshow("1_hsv_V", hsv[:,:,2])  # show V channel for brightness
 
     # Step 3: White mask (low S, high V)
     lower_white = np.array([0, 0, 180])
     upper_white = np.array([179, 60, 255])
     mask_white = cv2.inRange(hsv, lower_white, upper_white)
-    cv2.imshow("3_mask_white", mask_white)
+    # cv2.imshow("3_mask_white", mask_white)
     a = PegaContornos(mask_white, img, 0.045)
     cv2.imshow("contornoa", a)
     
     # Step 4: Clean masks with morphology
     k_open = cv2.getStructuringElement(cv2.MORPH_RECT, (5,3))
     white_clean = cv2.morphologyEx(mask_white, cv2.MORPH_OPEN, k_open, iterations=1)
-    cv2.imshow("5_white_clean", white_clean)
+    # cv2.imshow("5_white_clean", white_clean)
     b = PegaContornos(white_clean, img, 0.045)
     cv2.imshow("contornob", b)
 
     print(type(a))
     #junta os dois
-    c = np.concatenate((a,b))
-    cv2.imshow("contornoc", c)
+    # c = np.concatenate((a,b))
+    # cv2.imshow("contornoc", c)
 
     LePlacas(zoom)
         
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    zoom = []
 
 def Main():
     PegaImagens()
